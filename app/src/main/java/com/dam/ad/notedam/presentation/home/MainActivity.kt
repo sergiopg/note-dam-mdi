@@ -11,7 +11,9 @@ import androidx.navigation.ui.setupWithNavController
 import com.dam.ad.notedam.R
 import com.dam.ad.notedam.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
+import java.io.BufferedReader
 import java.io.File
+import java.io.FileReader
 import java.io.FileWriter
 
 @AndroidEntryPoint
@@ -42,7 +44,10 @@ class MainActivity : AppCompatActivity() {
         builder.setTitle("Guardar fichero:")
             .setItems(options) { dialogInterface: DialogInterface, which: Int ->
                 when (which) {
-                    0 -> saveLocally()
+                    0 -> {
+                        saveLocally()
+                        readAndShowCategories() // Leer y mostrar categorías después de guardar localmente
+                    }
                     1 -> saveRemotely()
                 }
                 dialogInterface.dismiss()
@@ -53,12 +58,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveLocally() {
-        // Supongamos que tienes una lista de categorías
+        // Supongamos que tienes una lista de categorías con subcategorías
         val categorias = listOf(
-            Categoria(1, "Trabajo"),
-            Categoria(2, "Personal"),
-            Categoria(3, "Estudio")
-            // Agrega más categorías según tu necesidad
+            Categoria(1, "Trabajo", listOf("Reuniones", "Proyectos")),
+            Categoria(2, "Personal", listOf("Compras", "Ejercicio")),
+            Categoria(3, "Estudio", listOf("Investigación", "Proyectos académicos"))
+            // Agrega más categorías con subcategorías según tu necesidad
         )
 
         // Nombre del archivo CSV
@@ -77,22 +82,80 @@ class MainActivity : AppCompatActivity() {
             val writer = FileWriter(file)
 
             // Escribe la línea de encabezado
-            writer.append("id,nombre\n")
+            writer.append("id,nombre,subcategorias\n")
 
             // Escribe cada categoría en una línea separada
             categorias.forEach { categoria ->
-                writer.append("${categoria.id},${categoria.nombre}\n")
+                val subcategorias = categoria.subcategorias.joinToString(";") // Separador para las subcategorías
+                writer.append("${categoria.id},${categoria.nombre},$subcategorias\n")
             }
 
             // Cierra el escritor
             writer.close()
 
             // Notifica al usuario que se guardó localmente
-            Toast.makeText(this,"Archivo CSV guardado localmente en ${file.absolutePath}",Toast.LENGTH_LONG).show()
+            Toast.makeText(this,"Archivo CSV guardado localmente en ${file.absolutePath}",Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this,"Error al guardar el archivo CSV localmente",Toast.LENGTH_LONG).show()
+            Toast.makeText(this,"Error al guardar el archivo CSV localmente",Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun readAndShowCategories() {
+        try {
+            val fileName = "categorias.csv"
+            val file = File(filesDir, fileName)
+
+            // Lee las categorías desde el archivo CSV
+            val categorias = readCategoriesFromCSV(file)
+
+            // Muestra las categorías en un Toast
+            Toast.makeText(this,"Categorías leídas:\n${formatCategories(categorias)}",Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this,"Error al leer las categorías desde el archivo CSV",Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun readCategoriesFromCSV(file: File): List<Categoria> {
+        val categorias = mutableListOf<Categoria>()
+
+        try {
+            val reader = BufferedReader(FileReader(file))
+
+            // Omite la línea de encabezado
+            reader.readLine()
+
+            // Lee cada línea y agrega la categoría a la lista
+            var line: String? = reader.readLine()
+            while (line != null) {
+                val parts = line.split(",")
+                if (parts.size == 3) {
+                    val id = parts[0].toInt()
+                    val nombre = parts[1]
+                    val subcategorias = parts[2].split(";")
+                    categorias.add(Categoria(id, nombre, subcategorias))
+                }
+                line = reader.readLine()
+            }
+
+            reader.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return categorias
+    }
+
+    private fun formatCategories(categorias: List<Categoria>): String {
+        val formattedCategories = StringBuilder()
+        for (categoria in categorias) {
+            formattedCategories.append("Categoria: ${categoria.nombre}\n")
+            for (subcategoria in categoria.subcategorias) {
+                formattedCategories.append("  Subcategoria: $subcategoria\n")
+            }
+        }
+        return formattedCategories.toString()
     }
 
     private fun saveRemotely() {
