@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
@@ -11,6 +12,7 @@ import com.dam.ad.notedam.R
 import com.dam.ad.notedam.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.File
+import java.io.FileWriter
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -51,14 +53,49 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveLocally() {
-        // Aquí puedes implementar la lógica para guardar localmente
-        // por ejemplo, escribir en un archivo en el almacenamiento interno
-        val file = File(filesDir, "nombre_del_archivo.csv")
-        // Realiza la operación de escritura en el archivo local
+        // Supongamos que tienes una lista de categorías
+        val categorias = listOf(
+            Categoria(1, "Trabajo"),
+            Categoria(2, "Personal"),
+            Categoria(3, "Estudio")
+            // Agrega más categorías según tu necesidad
+        )
+
+        // Nombre del archivo CSV
+        val fileName = "categorias.csv"
+
+        // Ruta completa del archivo en el almacenamiento interno
+        val file = File(filesDir, fileName)
+
+        // Escribe las categorías en el archivo CSV
+        writeCategoriesToCSV(file, categorias)
+    }
+
+    private fun writeCategoriesToCSV(file: File, categorias: List<Categoria>) {
+        try {
+            // Crea un escritor para el archivo CSV
+            val writer = FileWriter(file)
+
+            // Escribe la línea de encabezado
+            writer.append("id,nombre\n")
+
+            // Escribe cada categoría en una línea separada
+            categorias.forEach { categoria ->
+                writer.append("${categoria.id},${categoria.nombre}\n")
+            }
+
+            // Cierra el escritor
+            writer.close()
+
+            // Notifica al usuario que se guardó localmente
+            Toast.makeText(this,"Archivo CSV guardado localmente en ${file.absolutePath}",Toast.LENGTH_LONG).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this,"Error al guardar el archivo CSV localmente",Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun saveRemotely() {
-        // Aquí puedes implementar la lógica para guardar de forma remota
-        // por ejemplo, enviar los datos a un servidor
+        // Implementa la lógica para guardar de forma remota
     }
 }
