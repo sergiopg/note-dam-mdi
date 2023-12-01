@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Environment
 import android.widget.Toast
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
@@ -68,6 +69,8 @@ class MainActivity : AppCompatActivity() {
 
         // Nombre del archivo CSV
         val fileName = "categorias.csv"
+
+        val filesDir= getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
 
         // Ruta completa del archivo en el almacenamiento interno
         val file = File(filesDir, fileName)
