@@ -5,15 +5,20 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
+import android.widget.LinearLayout
 import androidx.core.view.marginBottom
 import androidx.fragment.app.Fragment
 import com.dam.ad.notedam.R
 import com.dam.ad.notedam.databinding.FragmentCategoriesBinding
 import com.dam.ad.notedam.presentation.home.Categoria
+import com.dam.ad.notedam.presentation.home.Tarea
 import dagger.hilt.android.AndroidEntryPoint
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @AndroidEntryPoint
 class CategoriesFragment : Fragment() {
@@ -50,8 +55,15 @@ class CategoriesFragment : Fragment() {
                 if (parts.size == 3) {
                     val id = parts[0].toInt()
                     val nombre = parts[1]
-                    val subcategorias = parts[2].split(";")
-                    categorias.add(Categoria(id, nombre, subcategorias))
+                    val tareas = parseTareas(parts[2])
+                    val fechaActual = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(
+                        Date()
+                    )
+
+                    // Actualiza la fecha de la categoría y de cada tarea con la fecha actual
+                    categorias.add(Categoria(id, nombre, fechaActual, tareas.map { tarea ->
+                        Tarea(tarea.completada, fechaActual, tarea.texto)
+                    }))
                 }
                 line = reader.readLine()
             }
@@ -64,18 +76,35 @@ class CategoriesFragment : Fragment() {
         return categorias
     }
 
+    private fun parseTareas(tareasString: String): List<Tarea> {
+        val tareas = mutableListOf<Tarea>()
+        val tareaParts = tareasString.split(";")
+        for (tareaPart in tareaParts) {
+            val tareaInfo = tareaPart.split(":")
+            if (tareaInfo.size == 3) {
+                val completada = tareaInfo[0].toBoolean()
+                val fechaActual = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
+                val texto = tareaInfo[2]
+                tareas.add(Tarea(completada, fechaActual, texto))
+            }
+        }
+        return tareas
+    }
+
     private fun showCategoriesWithCheckBoxes(view: View, categorias: List<Categoria>) {
         val container = view.findViewById<ViewGroup>(R.id.checkboxContainer)
 
         for (categoria in categorias) {
             val checkBox = CheckBox(requireContext())
-            checkBox.text = categoria.nombre
-
-
-            // Puedes agregar lógica adicional según tus necesidades,
-            // por ejemplo, manejar eventos de clic, etc.
-
+            checkBox.text = "${categoria.nombre} (${categoria.fecha})"
             container.addView(checkBox)
+
+            for (tarea in categoria.subcategorias) {
+                val subCheckBox = CheckBox(requireContext())
+                subCheckBox.text = tarea.texto
+                subCheckBox.isChecked = tarea.completada
+                container.addView(subCheckBox)
+            }
         }
     }
 }

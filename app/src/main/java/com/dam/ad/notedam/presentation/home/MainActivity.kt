@@ -1,6 +1,7 @@
 package com.dam.ad.notedam.presentation.home
 
 import android.app.AlertDialog
+import android.content.Context
 import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
@@ -16,6 +17,10 @@ import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 import java.io.FileWriter
+import java.io.IOException
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -36,6 +41,7 @@ class MainActivity : AppCompatActivity() {
         navController = navHost.navController
         binding.bottomNavView.setupWithNavController(navController)
     }
+
 
 
     private fun showSaveFileDialog() {
@@ -61,9 +67,9 @@ class MainActivity : AppCompatActivity() {
     private fun saveLocally() {
         // Supongamos que tienes una lista de categorías con subcategorías
         val categorias = listOf(
-            Categoria(1, "Trabajo", listOf("Reuniones", "Proyectos")),
-            Categoria(2, "Personal", listOf("Compras", "Ejercicio")),
-            Categoria(3, "Estudio", listOf("Investigación", "Proyectos académicos"))
+            Categoria(1, "Trabajo", getCurrentDate(), listOf(Tarea(false, getCurrentDate(), "Reuniones"), Tarea(true, getCurrentDate(), "Proyectos"))),
+            Categoria(2, "Personal", getCurrentDate(), listOf(Tarea(false, getCurrentDate(), "Compras"), Tarea(true, getCurrentDate(), "Ejercicio"))),
+            Categoria(3, "Estudio", getCurrentDate(), listOf(Tarea(false, getCurrentDate(), "Investigación"), Tarea(true, getCurrentDate(), "Proyectos académicos")))
             // Agrega más categorías con subcategorías según tu necesidad
         )
 
@@ -73,11 +79,11 @@ class MainActivity : AppCompatActivity() {
                 when (which) {
                     0 -> {
                         // Guardar en formato CSV
-                        saveToCSV(categorias)
+                        saveToCSV(categorias, this)
                     }
                     1 -> {
                         // Guardar en formato JSON
-                        saveToJSON(categorias)
+                        saveToJSON(categorias, this)
                     }
                 }
                 dialogInterface.dismiss()
@@ -87,52 +93,76 @@ class MainActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun saveToCSV(categorias: List<Categoria>) {
+    private fun getCurrentDate(): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+        return dateFormat.format(Date())
+    }
+
+    private fun saveToCSV(categorias: List<Categoria>, context: Context) {
         val fileName = "categorias.csv"
-        val filesDir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+        val filesDir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
         val file = File(filesDir, fileName)
+
+        // Verificar si el archivo ya existe
+        if (!file.exists()) {
+            try {
+                file.createNewFile()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                // Manejar el error según tus necesidades
+                return
+            }
+        }
+
         writeCategoriesToCSV(file, categorias)
     }
 
-    private fun saveToJSON(categorias: List<Categoria>) {
+    private fun saveToJSON(categorias: List<Categoria>, context: Context) {
         val fileName = "categorias.json"
-        val filesDir = getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
+        val filesDir = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)
         val file = File(filesDir, fileName)
+
+        // Verificar si el archivo ya existe
+        if (!file.exists()) {
+            try {
+                file.createNewFile()
+            } catch (e: IOException) {
+                e.printStackTrace()
+                // Manejar el error según tus necesidades
+                return
+            }
+        }
+
         writeCategoriesToJSON(file, categorias)
     }
 
     private fun writeCategoriesToCSV(file: File, categorias: List<Categoria>) {
         try {
-            // Crea un escritor para el archivo CSV
-            val writer = FileWriter(file)
-
-            // Escribe la línea de encabezado
-            writer.append("id,nombre,subcategorias\n")
+            // Crea un escritor para el archivo CSV en modo de añadir (append)
+            val writer = FileWriter(file, true)
 
             // Escribe cada categoría en una línea separada
             categorias.forEach { categoria ->
                 val subcategorias = categoria.subcategorias.joinToString(";") // Separador para las subcategorías
-                writer.append("${categoria.id},${categoria.nombre},$subcategorias\n")
+                writer.append("${categoria.id},${categoria.nombre},${categoria.fecha},$subcategorias\n")
             }
 
             // Cierra el escritor
             writer.close()
 
             // Notifica al usuario que se guardó localmente
-            Toast.makeText(this,"Archivo CSV guardado localmente en ${file.absolutePath}",Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
+            Toast.makeText(this, "Categorías agregadas al archivo CSV en ${file.absolutePath}", Toast.LENGTH_SHORT).show()
+        } catch (e: IOException) {
             e.printStackTrace()
-            Toast.makeText(this,"Error al guardar el archivo CSV localmente",Toast.LENGTH_SHORT).show()
+            // Manejar el error según tus necesidades
+            Toast.makeText(this, "Error al agregar categorías al archivo CSV", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun writeCategoriesToJSON(file: File, categorias: List<Categoria>) {
         try {
-            // Crea un escritor para el archivo JSON
-            val writer = FileWriter(file)
-
-            // Inicia un objeto JSON
-            writer.append("[")
+            // Crea un escritor para el archivo JSON en modo de añadir (append)
+            val writer = FileWriter(file, true)
 
             // Escribe cada categoría como un objeto JSON separado por comas
             categorias.forEachIndexed { index, categoria ->
@@ -140,6 +170,7 @@ class MainActivity : AppCompatActivity() {
                 writer.append("{")
                 writer.append("\"id\": ${categoria.id},")
                 writer.append("\"nombre\": \"${categoria.nombre}\",")
+                writer.append("\"fecha\": \"${categoria.fecha}\",")
                 writer.append("\"subcategorias\": [\"$subcategoriasArray\"]")
                 writer.append("}")
 
@@ -156,13 +187,13 @@ class MainActivity : AppCompatActivity() {
             writer.close()
 
             // Notifica al usuario que se guardó localmente
-            Toast.makeText(this, "Archivo JSON guardado localmente en ${file.absolutePath}", Toast.LENGTH_SHORT).show()
-        } catch (e: Exception) {
+            Toast.makeText(this, "Categorías agregadas al archivo JSON en ${file.absolutePath}", Toast.LENGTH_SHORT).show()
+        } catch (e: IOException) {
             e.printStackTrace()
-            Toast.makeText(this, "Error al guardar el archivo JSON localmente", Toast.LENGTH_SHORT).show()
+            // Manejar el error según tus necesidades
+            Toast.makeText(this, "Error al agregar categorías al archivo JSON", Toast.LENGTH_SHORT).show()
         }
     }
-
 
     private fun readAndShowCategories() {
         try {
@@ -193,11 +224,20 @@ class MainActivity : AppCompatActivity() {
             var line: String? = reader.readLine()
             while (line != null) {
                 val parts = line.split(",")
-                if (parts.size == 3) {
+                if (parts.size == 4) {
                     val id = parts[0].toInt()
                     val nombre = parts[1]
-                    val subcategorias = parts[2].split(";")
-                    categorias.add(Categoria(id, nombre, subcategorias))
+                    val fecha = parts[2]
+                    val subcategorias = parts[3].split(";")
+                    categorias.add(Categoria(id, nombre, fecha, subcategorias.map { tarea ->
+                        val tareaInfo = tarea.split(":")
+                        if (tareaInfo.size == 3) {
+                            Tarea(tareaInfo[0].toBoolean(), tareaInfo[1], tareaInfo[2])
+                        } else {
+                            // Manejar un formato incorrecto o agregar lógica adicional según sea necesario
+                            Tarea(false, "", "")
+                        }
+                    }))
                 }
                 line = reader.readLine()
             }
@@ -213,9 +253,9 @@ class MainActivity : AppCompatActivity() {
     private fun formatCategories(categorias: List<Categoria>): String {
         val formattedCategories = StringBuilder()
         for (categoria in categorias) {
-            formattedCategories.append("Categoria: ${categoria.nombre}\n")
+            formattedCategories.append("Categoria: ${categoria.nombre}, Fecha: ${categoria.fecha}\n")
             for (subcategoria in categoria.subcategorias) {
-                formattedCategories.append("  Subcategoria: $subcategoria\n")
+                formattedCategories.append("  Subcategoria: ${subcategoria.texto}, Completada: ${subcategoria.completada}, Fecha: ${subcategoria.fecha}\n")
             }
         }
         return formattedCategories.toString()
@@ -224,4 +264,5 @@ class MainActivity : AppCompatActivity() {
     private fun saveRemotely() {
         // Implementa la lógica para guardar de forma remota
     }
+
 }
