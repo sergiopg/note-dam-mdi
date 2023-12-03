@@ -4,7 +4,7 @@ NoteDAM es una aplicación de gestión de ToDos
 ## Práctica 1
 
 En esta práctica se busca trabajar con el manejo de ficheros, en este caso en una aplicación de Android hecha con Kotlin.
-Para ello usaremos ficheros de tipo CSV, JSON (y opcionalmente XML).
+Para ello usaremos ficheros de tipo CSV, JSON (y opcionalmente XML). (hecho)
 
 ### Obligatorio
  - Se guardarán en fichero(s) CSV un listado de Categorías que el usuario podrá gestionar y que estarán asociados a su vez a una lista de tareas. Se deberá valorar el número de ficheros que se van a usar y argumentar por qué se ha optado por esa opción.
